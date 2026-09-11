@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Build Docker images
+        run: docker compose build
+
+      - name: Start services
+        run: docker compose up -d
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for containers..."
+          sleep 10
+          docker compose ps
+
+      - name: Show container logs
+        if: always()
+        run: docker compose logs
+
+      - name: Check PostgreSQL
+        run: |
+          docker compose exec -T postgres \
+            pg_isready -U authuser -d authdb
+
+      - name: Check server responds
+        run: |
+          curl -sS -o /dev/null -w "%{http_code}\n" \
+            http://localhost:8080
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v

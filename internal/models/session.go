@@ -9,7 +9,7 @@ type Session struct {
 	ID        uint       `gorm:"primaryKey;autoIncrement" json:"id"`
 	UserID    uint       `gorm:"not null;index" json:"user_id"`
 	User      User       `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"user,omitempty"`
-	Token     string     `gorm:"type:varchar(128);uniqueIndex;not null" json:"token"`
+	Token     string     `gorm:"type:varchar(128);unique;not null" json:"token"`
 	ExpiresAt time.Time  `gorm:"not null;index" json:"expires_at"`
 	RevokedAt *time.Time `gorm:"index" json:"revoked_at,omitempty"`
 	CreatedAt time.Time  `gorm:"not null" json:"created_at"`

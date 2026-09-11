@@ -7,7 +7,7 @@ import (
 // User represents a registered user account in the system
 type User struct {
 	ID                  uint       `gorm:"primaryKey;autoIncrement" json:"id"`
-	Username            string     `gorm:"type:varchar(64);uniqueIndex;not null" json:"username"`
+	Username            string     `gorm:"type:varchar(64);unique;not null" json:"username"`
 	PasswordHash        string     `gorm:"type:varchar(255);not null" json:"-"`
 	TOTPSecret          string     `gorm:"type:varchar(128)" json:"-"`
 	TOTPEnabled         bool       `gorm:"default:false;not null" json:"totp_enabled"`

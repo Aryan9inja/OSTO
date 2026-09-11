@@ -1,0 +1,73 @@
+services:
+  # 1. PostgreSQL Database with Persistent Storage
+  postgres:
+    image: postgres:16-alpine
+    container_name: auth_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: authpassword
+      POSTGRES_DB: authdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/000001_init_schema.up.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authuser -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - auth_net
+
+  # 2. Authentication API Server (Gin + GORM)
+  server:
+    build:
+      context: .
+      target: server
+    container_name: auth_server
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: "8080"
+      DB_DRIVER: "postgres"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_USER: "authuser"
+      DB_PASSWORD: "authpassword"
+      DB_NAME: "authdb"
+      DB_SSLMODE: "disable"
+      SESSION_TIMEOUT_MINUTES: "30"
+      MAX_FAILED_ATTEMPTS: "5"
+      LOCKOUT_DURATION_MINUTES: "15"
+      TOTP_ISSUER: "AuthCLISystem"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - auth_net
+
+  # 3. Interactive CLI Client
+  cli:
+    build:
+      context: .
+      target: cli
+    container_name: auth_cli
+    stdin_open: true
+    tty: true
+    environment:
+      AUTH_SERVER_URL: "http://server:8080"
+    depends_on:
+      - server
+    networks:
+      - auth_net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  auth_net:
+    driver: bridge

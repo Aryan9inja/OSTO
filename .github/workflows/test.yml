@@ -41,10 +41,28 @@ jobs:
           docker compose exec -T postgres \
             pg_isready -U authuser -d authdb
 
+      - name: Debug services
+        run: |
+          docker compose ps
+          echo "===== SERVER LOGS ====="
+          docker compose logs server
+          echo "===== POSTGRES LOGS ====="
+          docker compose logs postgres
+
       - name: Check server responds
         run: |
-          curl -sS -o /dev/null -w "%{http_code}\n" \
-            http://localhost:8080
+          for i in {1..12}; do
+            echo "Attempt $i..."
+            if curl -sS http://localhost:8080; then
+              echo "Server is reachable"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "Server did not become reachable"
+          docker compose logs server
+          exit 1
 
       - name: Stop services
         if: always()
